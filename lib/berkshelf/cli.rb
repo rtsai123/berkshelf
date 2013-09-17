@@ -319,17 +319,28 @@ module Berkshelf
       desc: 'Path to a Berksfile to operate off of.',
       aliases: '-b',
       banner: 'PATH'
+    desc 'check', 'Check that all dependencies are downloaded and installed'
+    def check
+      berksfile = Berksfile.from_file(options[:berksfile])
+
+      if berksfile.ok?
+        Berkshelf.ui.info "The Berksfile's dependencies are satisfied and downloaded"
+      else
+        Berkshelf.ui.error "Berkshelf can't satisfy your Berksfile's dependencies"
+        raise CookbookNotFound
+      end
+    end
+
+    method_option :berksfile,
+      type: :string,
+      default: Berkshelf::DEFAULT_FILENAME,
+      desc: 'Path to a Berksfile to operate off of.',
+      aliases: '-b',
+      banner: 'PATH'
     desc 'list', 'List all cookbooks and their dependencies specified by your Berksfile'
     def list
-      berksfile    = Berksfile.from_file(options[:berksfile])
-      dependencies = Berkshelf.ui.mute { berksfile.install }.sort
-
-      if dependencies.empty?
-        Berkshelf.formatter.msg 'There are no cookbooks installed by your Berksfile'
-      else
-        Berkshelf.formatter.msg 'Cookbooks installed by your Berksfile:'
-        print_list(dependencies)
-      end
+      berksfile = Berksfile.from_file(options[:berksfile])
+      Berkshelf.formatter.list(berksfile.list)
     end
 
     method_option :berksfile,
@@ -341,7 +352,7 @@ module Berkshelf
     desc "show [COOKBOOK]", "Display name, author, copyright, and dependency information about a cookbook"
     def show(name)
       berksfile = Berksfile.from_file(options[:berksfile])
-      cookbook = berksfile.retrieve_locked(name)
+      cookbook = berksfile.retrieve_locked(berksfile.find!(name))
       Berkshelf.formatter.show(cookbook)
     end
 
